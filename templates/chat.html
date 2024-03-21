@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var room = 'general';
+        var username = '{{ username }}';
+
+        socket.on('connect', function() {
+            socket.emit('join', {'room': room});
+        });
+
+        socket.on('join_announcement', function(data) {
+            var message = document.createElement('div');
+            message.classList.add('text-muted');
+            message.textContent = `${data.username} joined the room`;
+            document.getElementById('messages').appendChild(message);
+        });
+
+        socket.on('broadcast', function(data) {
+            var message = document.createElement('div');
+            message.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+            document.getElementById('messages').appendChild(message);
+        });
+
+        socket.on('leave_announcement', function(data) {
+            var message = document.createElement('div');
+            message.classList.add('text-muted');
+            message.textContent = `${data.username} left the room`;
+            document.getElementById('messages').appendChild(message);
+        });
+
+        window.onbeforeunload = function() {
+            socket.emit('leave', {'room': room});
+        };
+
+        function sendMessage() {
+            var messageInput = document.getElementById('message-input');
+            var message = messageInput.value.trim();
+            if (message) {
+                socket.emit('message', {'room': room, 'message': message});
+                messageInput.value = '';
+            }
+        }
+
+        function logout() {
+            socket.emit('leave', {'room': room});
+            window.location.href = '/logout';
+        }
+    </script>
+    <style>
+        body {
+            padding: 20px;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #message-input {
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Chat Room</h1>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+        <div id="messages" class="mb-4"></div>
+        <div class="input-group mb-3">
+            <input type="text" id="message-input" class="form-control" placeholder="Enter your message...">
+            <div class="input-group-append">
+                <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
